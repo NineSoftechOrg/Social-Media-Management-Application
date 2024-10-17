@@ -20,14 +20,19 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "strictNullChecks": true
   },
   "include": [
     "next-env.d.ts",
     ".next/types/**/*.ts",
     "**/*.ts",
-    "**/*.tsx"
-, "src/app/auth/authForms/AuthTwoSteps.jsx", "src/components/dashboard/dash-header/QuickLinks.jsx", "src/components/dashboard/dash-header/AppLinks.jsx", "src/components/dashboard/dash-header/Notification.jsx"  ],
+    "**/*.tsx",
+    "src/app/auth/authForms/AuthTwoSteps.jsx",
+    "src/components/dashboard/dash-header/QuickLinks.jsx",
+    "src/components/dashboard/dash-header/AppLinks.jsx",
+    "src/components/dashboard/dash-header/Notification.jsx"
+  ],
   "exclude": [
     "node_modules"
   ]

@@ -1,7 +1,9 @@
+
 import { FiBell, FiSettings, FiMenu } from "react-icons/fi";
 import { useState } from "react";
-import Profile from "./profile"
-import { useRouter } from 'next/navigation';
+import Profile from "./profile";
+import { useRouter } from 'next/navigation'
+
 
 const Header = ({ toggleSidebar }) => {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -132,9 +134,9 @@ const Header = ({ toggleSidebar }) => {
           <div className="relative">
             <button
               className="text-lg cursor-pointer flex items-center focus:outline-none"
-              onClick={() => router.push('/dashboard')}
+              onClick={() => router.push('/businessstrategy')}
               >
-              <span className="lg:text-base">Calender</span>
+              <span className="lg:text-base">Business Strategy</span>
             </button>
           </div>
         </div>
@@ -164,4 +166,4 @@ const Header = ({ toggleSidebar }) => {
   );
 };
 
-export default Header;
+export default Header; 

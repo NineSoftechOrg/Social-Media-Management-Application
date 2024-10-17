@@ -1,13 +1,9 @@
-// src/components/Sidebar.js
-"use client"
-import React from "react";
-import { useState, useEffect } from "react";
+"use client";
+import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-
 import { useRouter } from "next/navigation";
 
 const FbSidebar = () => {
-  
   const [socialAccounts, setSocialAccounts] = useState([
     {
       name: "Facebook",
@@ -30,12 +26,12 @@ const FbSidebar = () => {
       connected: false,
     },
   ]);
-
+  
+  const [showDropdown, setShowDropdown] = useState(false);
   const { data: session } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    // Load saved state from local storage
     const savedState = JSON.parse(localStorage.getItem("socialAccounts"));
     if (savedState) {
       setSocialAccounts(savedState);
@@ -43,36 +39,47 @@ const FbSidebar = () => {
   }, []);
 
   useEffect(() => {
-    // Save state to local storage
     localStorage.setItem("socialAccounts", JSON.stringify(socialAccounts));
   }, [socialAccounts]);
 
   useEffect(() => {
     if (session) {
-      // Update connected status based on session information
-      setSocialAccounts((prev) =>
-        prev.map((account) =>
-          account.name === "Facebook" // Check the session for specific provider status
-            ? { ...account, connected: true }
-            : account
-        )
-      );
-    } else {
       setSocialAccounts((prev) =>
         prev.map((account) =>
           account.name === "Facebook"
-            ? { ...account, connected: false }
+            ? { ...account, connected: true }
             : account
         )
       );
     }
   }, [session]);
 
-  // Filter to display only connected accounts
+  // Toggle the connection status of an account
+  const toggleConnection = (index) => {
+    setSocialAccounts((prev) =>
+      prev.map((account, i) =>
+        i === index ? { ...account, connected: !account.connected } : account
+      )
+    );
+  };
+
+  // Handle dropdown toggle for adding new accounts
+  const handleDropdownToggle = () => {
+    setShowDropdown((prev) => !prev);
+  };
+
+  // Handle connecting new accounts from dropdown
+  const handleConnectAccount = (index) => {
+    setSocialAccounts((prev) =>
+      prev.map((account, i) =>
+        i === index ? { ...account, connected: true } : account
+      )
+    );
+  };
+
   const connectedAccounts = socialAccounts.filter((account) => account.connected);
-  // Determine if any accounts are not connected
   const hasDisconnectedAccounts = socialAccounts.some((account) => !account.connected);
-  
+
   return (
     <div className="flex-1 p-6 overflow-auto transition-all duration-300 pt-4">
       <div className="col-span-1 bg-slate-200 text-slate-800 p-8 shadow rounded">
@@ -84,7 +91,11 @@ const FbSidebar = () => {
         ) : (
           <ul className="space-y-4">
             {connectedAccounts.map((account, index) => (
-              <li className="flex space-x-4" key={index}>
+              <li
+                className="flex space-x-4 cursor-pointer"
+                key={index}
+                onClick={() => toggleConnection(index)}
+              >
                 <img
                   src={account.icon}
                   alt={`${account.name} icon`}
@@ -104,13 +115,37 @@ const FbSidebar = () => {
             ))}
           </ul>
         )}
-          {hasDisconnectedAccounts && (
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Connect an Account
-          </button>
+        {hasDisconnectedAccounts && (
+          <>
+            <button
+              onClick={handleDropdownToggle}
+              className="mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              {showDropdown ? "Close" : "Connect an Account"}
+            </button>
+            {showDropdown && (
+              <ul className="mt-4 space-y-4 bg-white border rounded shadow-lg p-4">
+                {socialAccounts.map((account, index) =>
+                  !account.connected ? (
+                    <li key={index} className="flex items-center space-x-4">
+                      <img
+                        src={account.icon}
+                        alt={`${account.name} icon`}
+                        className="w-8 h-8 rounded-full"
+                      />
+                      <span>{account.name}</span>
+                      <input
+                        type="checkbox"
+                        checked={account.connected}
+                        onChange={() => handleConnectAccount(index)}
+                        className="ml-auto"
+                      />
+                    </li>
+                  ) : null
+                )}
+              </ul>
+            )}
+          </>
         )}
       </div>
     </div>

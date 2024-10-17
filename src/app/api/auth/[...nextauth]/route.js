@@ -1,3 +1,4 @@
+
 // src/app/api/auth/[...nextauth]/route.js
 import NextAuth from 'next-auth';
 import FacebookProvider from 'next-auth/providers/facebook';
@@ -7,8 +8,8 @@ import TwitterProvider from 'next-auth/providers/twitter';
 const handler = NextAuth({
   providers: [
     FacebookProvider({
-      clientId: process.env.FACEBOOK_CLIENT_ID,
-      clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
+      clientId: process.env.FACEBOOK_APP_ID,
+      clientSecret: process.env.FACEBOOK_APP_SECRET,
       authorization: {
         params: {
           scope: 'email pages_manage_posts pages_read_engagement pages_show_list',

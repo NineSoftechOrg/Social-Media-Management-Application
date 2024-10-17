@@ -1,7 +1,8 @@
+
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Grid, Box, Typography, Button } from "@mui/material";
+import {  Grid, Box, Typography, Button } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLink } from "@fortawesome/free-solid-svg-icons";
 import Image from "next/image";
@@ -14,6 +15,8 @@ const DashHome = () => {
   const [providerData, setProviderData] = useState({});
   const [userProfile, setUserProfile] = useState(null);
   const router = useRouter();
+  
+  
   const [connectionStatus, setConnectionStatus] = useState({
     facebook: false,
     instagram: false,
@@ -51,10 +54,6 @@ const DashHome = () => {
     }
   }, []);
 
-  const handleLinkedInSignIn = () => {
-    window.location.href = LINKEDIN_URL;
-  };
-
   const handleSignOut = (provider) => {
     // Custom sign out logic for each provider if needed
     signOut();
@@ -64,14 +63,19 @@ const DashHome = () => {
     }));
   };
 
-  const handleSignIn = async (provider) => {
-    await signIn(provider);
-    setConnectionStatus((prevStatus) => ({
-      ...prevStatus,
-      [provider]: true,
-    }));
-  };
 
+  const handleFacebookRedirect = () => {
+    window.location.href = "https://www.facebook.com";
+  };
+  const handleLinkedinRedirect = () => {
+    window.location.href = "https://www.linkedin.com";
+  };
+  const handleInstagramRedirect = () => {
+    window.location.href = "https://www.instagram.com";
+  };
+  const handleTwitterRedirect = () => {
+    window.location.href = "https://www.twitter.com";
+  };
   return (
     <>
       <div>
@@ -176,6 +180,7 @@ const DashHome = () => {
           </Grid>
         </Box>
       </div>
+     
       <div>
         <div className=" mt-6 mb-6 px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -227,10 +232,7 @@ const DashHome = () => {
                   ) : (
                     <button
                       className="w-full py-2 px-4 bg-blue-600 font-medium text-sm text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300"
-                      onClick={() => {
-                        handleSignIn("facebook");
-                        router.push("/dashboard/posts");
-                      }}
+                      onClick={handleFacebookRedirect}
                     >
                       Connect to Facebook
                     </button>
@@ -286,7 +288,7 @@ const DashHome = () => {
                   ) : (
                     <button
                       className="w-full py-2 px-4 bg-blue-600 font-medium text-sm text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300"
-                      onClick={() => handleSignIn("instagram")}
+                      onClick={handleInstagramRedirect}
                     >
                       Connect to Instagram
                     </button>
@@ -342,7 +344,7 @@ const DashHome = () => {
                   ) : (
                     <button
                       className="w-full py-2 px-4 bg-blue-600 font-medium text-sm text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300"
-                      onClick={() => handleSignIn("twitter")}
+                      onClick={handleTwitterRedirect}
                     >
                       Connect to Twitter
                     </button>
@@ -398,7 +400,7 @@ const DashHome = () => {
                   ) : (
                     <button
                       className="w-full py-2 px-4 bg-blue-600 font-medium text-sm text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300"
-                      onClick={handleLinkedInSignIn}
+                      onClick={handleLinkedinRedirect}
                     >
                       Connect to LinkedIn
                     </button>

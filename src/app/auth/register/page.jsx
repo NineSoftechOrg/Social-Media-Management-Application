@@ -69,5 +69,3 @@ export default function Register2() {
     </Box>
   </PageContainer>
 )};
-
-

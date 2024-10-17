@@ -1,4 +1,4 @@
-import React from 'react'
+ import React from 'react'
 import FbPost from '../../../components/dashboard/posts/facebook/fbPost'
 const Posts = () => {
   return (
@@ -10,4 +10,4 @@ const Posts = () => {
   )
 }
 
-export default Posts
+export default Posts 
