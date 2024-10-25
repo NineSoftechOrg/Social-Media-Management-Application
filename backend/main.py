@@ -1,83 +1,140 @@
-from fastapi import FastAPI, Response
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from langchain_ollama import OllamaLLM
 from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, ListFlowable
+from reportlab.lib.units import inch
 import logging
-import io
+import uuid
+import os
+import re
 
 app = FastAPI()
 
-# Enable CORS for cross-origin requests
+# CORS settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust this as necessary for security
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Request model for receiving prompt
+# Data model for request
 class PromptRequest(BaseModel):
     text: str
 
-# Request model for PDF generation
-class PdfRequest(BaseModel):
-    content: str  # The content to turn into a PDF
-
-# Initialize logging
+# Logging configuration
 logging.basicConfig(level=logging.INFO)
-
-# Initialize your LLM (local AI model or other language model)
 llm = OllamaLLM(model="llama3.2")
 
-# Endpoint to generate the roadmap based on prompt
 @app.post("/generate-roadmap/")
 async def generate_roadmap(prompt: PromptRequest):
     logging.info(f"Received prompt: {prompt.text}")
-
     try:
-        # Construct a detailed prompt for monthly planning
+        # Generating a roadmap based on provided business data
         business_data = prompt.text
-        detailed_prompt = f"Based on the following business details, generate a monthly planning best roadmap:\n{business_data}"
+        detailed_prompt = f"Based on the following business details, generate a monthly planning roadmap:\n{business_data}"
+        
+        roadmap_content = ""
+        for chunk in llm.stream(detailed_prompt):
+            roadmap_content += chunk
 
-        return StreamingResponse(generate(detailed_prompt), media_type="text/plain")
+        pdf_path = f"/tmp/{uuid.uuid4()}.pdf"
+        generate_pdf(roadmap_content, pdf_path)
+
+        return {"pdf_url": f"http://localhost:8000/download-pdf/{os.path.basename(pdf_path)}"}
+
     except Exception as e:
         logging.error(f"Error generating roadmap: {e}")
         return {"message": f"Error generating roadmap: {str(e)}"}
 
+@app.get("/download-pdf/{pdf_filename}")
+async def download_pdf(pdf_filename: str):
+    pdf_path = f"/tmp/{pdf_filename}"
+    if os.path.exists(pdf_path):
+        return FileResponse(pdf_path, media_type="application/pdf", filename="roadmap.pdf")
+    return {"message": "PDF file not found"}
 
-# Generator function to stream AI response
-def generate(prompt):
-    yield "Starting roadmap generation...\n"
-    for chunk in llm.stream(prompt):
-        yield f"{chunk}\n"
-    yield "Roadmap generation complete.\n" 
+def generate_pdf(content: str, file_path: str):
+    doc = SimpleDocTemplate(file_path, pagesize=letter, rightMargin=50, leftMargin=50, topMargin=50, bottomMargin=50)
+    styles = getSampleStyleSheet()
 
-# Endpoint to download the response as a PDF
-@app.post("/download-pdf/")
-async def download_pdf(request: PdfRequest):
-    # Create an in-memory file to store the PDF
-    pdf_file = io.BytesIO()
+    # Custom styles for PDF elements
+    title_style = ParagraphStyle(
+        name="TitleStyle",
+        fontSize=18,
+        leading=22,
+        spaceAfter=24,
+        alignment=1,  # Center-align title
+        textColor=colors.darkblue,
+        fontName="Helvetica-Bold"
+    )
 
-    # Generate the PDF using reportlab
-    p = canvas.Canvas(pdf_file, pagesize=letter)
-    p.drawString(100, 750, "Generated PDF")
-    p.drawString(100, 730, f"Response: {request.content}")  # Add response content to PDF
+    subtitle_style = ParagraphStyle(
+        name="SubtitleStyle",
+        fontSize=14,
+        leading=18,
+        spaceAfter=14,
+        textColor=colors.darkgreen,
+        fontName="Helvetica-Bold"
+    )
 
-    p.showPage()
-    p.save()
+    body_style = ParagraphStyle(
+        name="BodyText",
+        fontSize=11,
+        leading=14,
+        spaceAfter=12,
+        fontName="Helvetica"
+    )
 
-    # Set file pointer to the beginning
-    pdf_file.seek(0)
+    bullet_style = ParagraphStyle(
+        name="Bullet",
+        fontSize=11,
+        leading=14,
+        leftIndent=20,
+        bulletIndent=10,
+        bulletFontName="Helvetica",
+        spaceAfter=8,
+        bulletColor=colors.black
+    )
 
-    # Return the PDF as a StreamingResponse
-    return StreamingResponse(pdf_file, media_type="application/pdf", headers={
-        "Content-Disposition": "attachment; filename=downloaded_pdf.pdf"
-    })
+    elements = []
+    
+    # Adding the title
+    elements.append(Paragraph("Generated Roadmap", title_style))
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="localhost", port=8000)
+    # Parsing and adding content with formatting
+    sections = content.split('\n\n')
+    for section in sections:
+        if section.startswith("## "):  # Subtitle formatting
+            elements.append(Spacer(1, 12))
+            elements.append(Paragraph(section[3:], subtitle_style))  # Add subtitle without "## "
+
+        elif section.startswith("- "):  # Bullet point formatting
+            bullets = []
+            for line in section.split("\n"):
+                if line.startswith("- "):
+                    text = line[2:]
+                    # Replace ** with bold formatting
+                    formatted_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+                    bullets.append(Paragraph(formatted_text, bullet_style))
+            elements.extend(bullets)
+            elements.append(Spacer(1, 10))
+
+        else:  # Regular paragraph formatting
+            # Replace ** with bold formatting
+            formatted_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', section)
+            elements.append(Paragraph(formatted_text, body_style))
+            elements.append(Spacer(1, 10))
+
+    # Building the PDF document
+    doc.build(elements)
+
+if __name__ == '__main__':
+     import uvicorn
+     uvicorn.run(app, host="localhost", port=8000)

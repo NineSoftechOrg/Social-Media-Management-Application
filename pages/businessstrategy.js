@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBuilding, faBriefcase, faCalendarAlt, faMapMarkerAlt, faDollarSign, faComments } from '@fortawesome/free-solid-svg-icons';
 
 const BusinessStrategy = () => {
-  const [step, setStep] = useState(1); // Track the current question step
+  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     companyName: '',
     businessType: '',
@@ -12,7 +12,6 @@ const BusinessStrategy = () => {
     budget: '',
     recommendations: '',
   });
-  const [responseMessage, setResponseMessage] = useState('');
   const [pdfUrl, setPdfUrl] = useState('');
 
   const handleInputChange = (e) => {
@@ -23,39 +22,19 @@ const BusinessStrategy = () => {
     if (step < 6) {
       setStep(step + 1);
     } else {
-      // Submit the form data to the backend
       try {
         const response = await fetch('http://localhost:8000/generate-roadmap/', {
           method: 'POST',
           headers: {
-              'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ text: JSON.stringify(formData) }), // Send form data as text
-      });
-        if (!response.ok) {
-          throw new Error('Failed to generate roadmap');
-        }
-
-        const data = await response.text(); // Get the response text
-        setResponseMessage(data); // Update response message
-
-        // After generating the roadmap, enable PDF download
-        const pdfResponse = await fetch('http://localhost:8000/download-pdf/', {
-          method: 'POST',
-          headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ content: data }), // Send response content for PDF generation
+          body: JSON.stringify({ text: JSON.stringify(formData) }),
         });
 
-        if (!pdfResponse.ok) {
-          throw new Error('Failed to generate PDF');
-        }
+        if (!response.ok) throw new Error('Failed to generate roadmap');
+        const { pdf_url } = await response.json();
+        setPdfUrl(pdf_url);
 
-        // Create a Blob from the response
-        const pdfBlob = await pdfResponse.blob();
-        const url = URL.createObjectURL(pdfBlob);
-        setPdfUrl(url); // Update PDF URL for downloading
       } catch (error) {
         alert(error.message);
       }
@@ -165,82 +144,27 @@ const BusinessStrategy = () => {
     }
   };
 
-  const isNextDisabled = () => {
-    switch (step) {
-      case 1:
-        return formData.companyName.trim() === '';
-      case 2:
-        return formData.businessType.trim() === '';
-      case 3:
-        return formData.timeSpan.trim() === '';
-      case 4:
-        return formData.location.trim() === '';
-      case 5:
-        return formData.budget.trim() === '';
-      case 6:
-        return formData.recommendations.trim() === '';
-      default:
-        return true;
-    }
-  };
+  const isNextDisabled = () => formData[Object.keys(formData)[step - 1]].trim() === '';
 
-  // Inline styles
-  const containerStyle = {
-    padding: '20px',
-    maxWidth: '600px',
-    margin: 'auto',
-  };
-  
-  const chatbotContainerStyle = {
-    border: '1px solid #ddd',
-    borderRadius: '5px',
-    padding: '20px',
-    backgroundColor: '#f9f9f9',
-  };
-
-  const titleStyle = {
-    fontSize: '1.5em',
-    fontWeight: 'bold',
-    marginBottom: '15px',
-    textAlign: 'center',
-  };
-
-  const inputStyle = {
-    width: '100%',
-    padding: '8px',
-    marginBottom: '10px',
-    fontSize: '1em',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-  };
-
-  const nextButtonStyle = {
-    backgroundColor: '#007bff',
-    color: '#fff',
-    border: 'none',
-    padding: '10px 20px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-  };
+  const containerStyle = { padding: '20px', maxWidth: '600px', margin: 'auto' };
+  const chatbotContainerStyle = { border: '1px solid #ddd', borderRadius: '5px', padding: '20px', backgroundColor: '#f9f9f9' };
+  const titleStyle = { fontSize: '1.5em', fontWeight: 'bold', marginBottom: '15px', textAlign: 'center' };
+  const inputStyle = { width: '100%', padding: '8px', marginBottom: '10px', fontSize: '1em', border: '1px solid #ddd', borderRadius: '4px' };
+  const nextButtonStyle = { backgroundColor: '#007bff', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer' };
 
   return (
     <div style={containerStyle}>
       <div style={chatbotContainerStyle}>
         <h2 style={titleStyle}>Business Strategy Form</h2>
         <div>{renderQuestion()}</div>
-        <button
-          style={nextButtonStyle}
-          onClick={nextStep}
-          disabled={isNextDisabled()}
-        >
+        <button style={nextButtonStyle} onClick={nextStep} disabled={isNextDisabled()}>
           {step < 6 ? 'Next' : 'Submit'}
         </button>
         {pdfUrl && (
           <a href={pdfUrl} download style={{ display: 'block', marginTop: '10px', color: '#007bff' }}>
-            Download PDF
+            Roadmap generated! Click to download PDF
           </a>
         )}
-        {responseMessage && <div style={{ marginTop: '10px' }}>{responseMessage}</div>}
       </div>
     </div>
   );
