@@ -1,10 +1,9 @@
-// pages/businessstrategy.js
-
 import React, { useState } from 'react';
 
 export default function BusinessStrategy() {
   const [promptText, setPromptText] = useState(''); // State to hold prompt text
   const [responseMessage, setResponseMessage] = useState(''); // State for backend response
+  const [isResponseGenerated, setIsResponseGenerated] = useState(false); // State to track if response is generated
 
   const containerStyle = {
     display: 'flex',
@@ -69,6 +68,9 @@ export default function BusinessStrategy() {
   };
 
   const handleGenerate = async () => {
+    setResponseMessage(''); // Clear previous response
+    setIsResponseGenerated(false); // Reset the flag
+
     try {
       const response = await fetch('http://localhost:8000/generate-roadmap/', {
         method: 'POST',
@@ -82,11 +84,51 @@ export default function BusinessStrategy() {
         throw new Error('Network response was not ok');
       }
 
-      const data = await response.json();
-      setResponseMessage(data.message); // Set response message from backend
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let done = false;
+      let text = '';
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        text += decoder.decode(value, { stream: true });
+        setResponseMessage(prev => prev + decoder.decode(value, { stream: true }));
+      }
+
+      setIsResponseGenerated(true); // Set flag when response is fully generated
     } catch (error) {
       console.error('Error:', error);
-      setResponseMessage('Error occurred while generating roadmap.'); // Set error message
+      setResponseMessage('Error occurred while generating roadmap.');
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/download-pdf/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content: responseMessage }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'roadmap.pdf'; // The name of the PDF file
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      alert('Error occurred while downloading the PDF.');
     }
   };
 
@@ -104,11 +146,20 @@ export default function BusinessStrategy() {
         <button style={generateButtonStyle} onClick={handleGenerate}>
           Generate
         </button>
-        <button style={downloadButtonStyle} onClick={() => alert('Download PDF clicked!')}>
-          Download PDF
-        </button>
       </div>
-      {responseMessage && <p>{responseMessage}</p>} {/* Display backend response */}
+
+      {/* Display response when generated */}
+      {responseMessage && <div dangerouslySetInnerHTML={{ __html: responseMessage }} />}
+
+      {/* Show "Click to download" message and download button once the response is generated */}
+      {isResponseGenerated && (
+        <div style={{ marginTop: '20px', textAlign: 'center' }}>
+          <p style={{ fontSize: '1.2rem', color: '#007bff' }}>Click below to download the PDF</p>
+          <button style={downloadButtonStyle} onClick={handleDownload}>
+            Download PDF
+          </button>
+        </div>
+      )}
     </div>
   );
 }
